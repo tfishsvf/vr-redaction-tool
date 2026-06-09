@@ -69,11 +69,11 @@ header p { font-size: 14px; color: #666; }
 
 <!-- Step 1 -->
 <div class="card" id="uploadCard">
-  <div class="step-label">Step 1 — Upload form</div>
+  <div class="step-label">Step 1 - Upload form</div>
   <div class="drop-zone" id="dropZone">
     <div class="icon">📄</div>
     <h3>Drop your form here</h3>
-    <p>JPG, PNG, or PDF — CamScanner exports work fine</p>
+    <p>JPG, PNG, or PDF - CamScanner exports work fine</p>
     <label class="browse-btn">Browse files<input type="file" id="fileInput" accept="image/*,application/pdf"></label>
   </div>
   <div id="uploadStatus"></div>
@@ -81,7 +81,7 @@ header p { font-size: 14px; color: #666; }
 
 <!-- Step 2: interactive editor + QC -->
 <div class="card hidden" id="qcCard">
-  <div class="step-label">Step 2 — Adjust &amp; confirm redaction</div>
+  <div class="step-label">Step 2 - Adjust &amp; confirm redaction</div>
   <p class="qc-prompt">Drag boxes to move, drag edges/corners to resize.</p>
   <p class="qc-sub">Black boxes cover the sensitive fields. Adjust them if the auto-placement looks off, then tick the boxes below.</p>
 
@@ -240,8 +240,8 @@ async function runOCRAndInit(canvas) {
 
   $('fallbackNote').classList.remove('hidden');
   $('uploadStatus').innerHTML = '';
-  initEditor(canvas);
   $('qcCard').classList.remove('hidden');
+  initEditor(canvas);
   $('qcCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -358,7 +358,7 @@ function onPointerDown(e) {
     }
   }
 
-  // Clicked empty area — deselect
+  // Clicked empty area - deselect
   selectedBox = -1;
   dragMode = null;
   drawEditor();

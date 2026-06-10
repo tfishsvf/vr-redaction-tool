@@ -237,12 +237,16 @@ async function addFiles(fileList) {
   const files = Array.from(fileList);
   if (!files.length || !selectedState) return;
   const startIdx = queue.length;
+  const isFirstBatch = queue.length === 0;
   files.forEach(f => queue.push({ file: f, name: f.name, canvas: null, boxes: null, confirmed: false, redactedDataUrl: null, state: selectedState }));
   $('uploadCard').classList.add('hidden');
   $('qcCard').classList.remove('hidden');
+  // Navigate to first form immediately so counter shows "1 of N"
+  if (isFirstBatch) {
+    currentIdx = 0;
+  }
   renderQueue();
   for (let i = startIdx; i < queue.length; i++) await processItem(i);
-  if (currentIdx === -1) goTo(0);
 }
 
 async function processItem(idx) {
@@ -386,7 +390,8 @@ function findSSNField(words, state) {
     if (ssnLabel.length) {
       ssnLabel.sort((a, b) => a.y0 - b.y0);
       const sl = ssnLabel[0], rh = sl.y1 - sl.y0;
-      return { x: 0.27, y: sl.y1 + rh * 1.5, w: 0.72, h: rh * 4.0 };
+      // Start at the label row itself and cover down through the XXX and digits
+      return { x: 0.27, y: sl.y0, w: 0.72, h: rh * 6.0 };
     }
     // Fallback: XXX on MI is on the left side of the form (x < 0.45)
     const miXxx = words.filter(w =>

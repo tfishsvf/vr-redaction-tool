@@ -92,14 +92,14 @@ header p { font-size: 14px; color: #666; }
 <body>
 <div class="container">
 
-<header>
+<header style="display:flex;justify-content:space-between;align-items:center;">
   <h1>Voter Registration Form Redaction</h1>
-  <p>Select a state, upload forms, confirm redaction boxes, then download redacted PDFs.</p>
+  <button class="btn btn-secondary" id="startOverBtn" style="font-size:12px;padding:5px 12px;flex-shrink:0;">Start over</button>
 </header>
 
 <!-- Step 1: State selection -->
 <div class="card" id="stateCard">
-  <div class="step-label">Step 1 - Select state</div>
+  <div class="step-label">Select state</div>
   <div class="state-btns">
     <button class="state-btn" data-state="MI">Michigan</button>
     <button class="state-btn" data-state="PA">Pennsylvania</button>
@@ -108,9 +108,8 @@ header p { font-size: 14px; color: #666; }
 </div>
 
 <!-- Step 2: Upload -->
-<div class="card" id="uploadCard">
-  <div class="step-label">Step 2 - Upload forms</div>
-  <div class="drop-zone disabled" id="dropZone">
+<div class="card hidden" id="uploadCard">
+  <div class="drop-zone" id="dropZone">
     <div class="icon">📄</div>
     <h3>Drop forms here</h3>
     <p>JPG, PNG, or PDF - select multiple files for bulk upload</p>
@@ -121,10 +120,6 @@ header p { font-size: 14px; color: #666; }
 
 <!-- Step 3: QC -->
 <div class="card hidden" id="qcCard">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
-    <div class="step-label" style="margin-bottom:0;">Step 3 - Review &amp; confirm each form</div>
-    <button class="btn btn-secondary" id="startOverBtn" style="font-size:12px;padding:5px 12px;">Start over</button>
-  </div>
   <div class="queue-header">
     <h3>Forms <span id="queueSummary" class="progress-summary"></span></h3>
     <button class="btn btn-secondary" id="addMoreBtn" style="font-size:12px;padding:6px 12px;">+ Add more</button>
@@ -163,6 +158,7 @@ header p { font-size: 14px; color: #666; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.4/dist/tesseract.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -181,8 +177,8 @@ const STATE_FALLBACKS = {
     ssn: { x: 0.580, y: 0.486, w: 0.390, h: 0.038 }
   },
   MN: {
-    dl:  { x: 0.315, y: 0.450, w: 0.670, h: 0.038 },
-    ssn: { x: 0.270, y: 0.490, w: 0.715, h: 0.042 }
+    dl:  { x: 0.50, y: 0.448, w: 0.48, h: 0.038 },
+    ssn: { x: 0.06, y: 0.566, w: 0.92, h: 0.045 }
   }
 };
 
@@ -215,7 +211,8 @@ document.querySelectorAll('.state-btn').forEach(btn => {
     document.querySelectorAll('.state-btn').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
     selectedState = btn.dataset.state;
-    $('dropZone').classList.remove('disabled');
+    $('stateCard').classList.add('hidden');
+    $('uploadCard').classList.remove('hidden');
   });
 });
 
@@ -226,34 +223,65 @@ dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
 dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragover'); if (selectedState) addFiles(e.dataTransfer.files); });
 $('fileInput').addEventListener('change', e => addFiles(e.target.files));
 $('addMoreBtn').addEventListener('click', () => $('addMoreInput').click());
-$('addMoreInput').addEventListener('change', e => addFiles(e.target.files));
+$('addMoreInput').addEventListener('change', e => addFiles(e.target.files, true));
 $('prevBtn').addEventListener('click', () => goTo(currentIdx - 1));
 $('nextBtn').addEventListener('click', () => goTo(currentIdx + 1));
 $('confirmBtn').addEventListener('click', confirmCurrent);
 $('downloadAllBtn').addEventListener('click', downloadAll);
 $('startOverBtn').addEventListener('click', startOver);
 
-async function addFiles(fileList) {
+async function addFiles(fileList, isAddMore=false) {
   const files = Array.from(fileList);
   if (!files.length || !selectedState) return;
+
+  // If this is a fresh upload (not "add more"), clear the previous session
+  if (!isAddMore) {
+    queue = [];
+    currentIdx = -1;
+    selectedBox = -1;
+    dragMode = null;
+    checkboxes.forEach(c => c.checked = false);
+  }
+
   const startIdx = queue.length;
-  const isFirstBatch = queue.length === 0;
   files.forEach(f => queue.push({ file: f, name: f.name, canvas: null, boxes: null, confirmed: false, redactedDataUrl: null, state: selectedState }));
   $('uploadCard').classList.add('hidden');
+  $('stateCard').classList.add('hidden');
   $('qcCard').classList.remove('hidden');
   // Navigate to first form immediately so counter shows "1 of N"
-  if (isFirstBatch) {
+  if (!isAddMore || currentIdx === -1) {
     currentIdx = 0;
   }
   renderQueue();
+  showCanvasLoading();
   for (let i = startIdx; i < queue.length; i++) await processItem(i);
+}
+
+function showCanvasLoading(label) {
+  const containerW = edCanvas.parentElement.clientWidth || 800;
+  const h = Math.round(containerW * 1.29); // approx letter ratio
+  edCanvas.width = containerW;
+  edCanvas.height = h;
+  edCanvas.style.width = containerW + 'px';
+  edCanvas.style.height = h + 'px';
+  edCtx.fillStyle = '#f5f5f3';
+  edCtx.fillRect(0, 0, containerW, h);
+  edCtx.fillStyle = '#ccc';
+  edCtx.font = `16px -apple-system, sans-serif`;
+  edCtx.textAlign = 'center';
+  edCtx.fillText(label || 'Processing…', containerW / 2, h / 2 - 10);
+  edCtx.font = `13px -apple-system, sans-serif`;
+  edCtx.fillText('This may take 10–20 seconds', containerW / 2, h / 2 + 14);
+  edCtx.textAlign = 'left';
 }
 
 async function processItem(idx) {
   const item = queue[idx];
   setStatus(`<div class="spinner"></div> Processing ${item.name}…`, 'processing');
+  if (idx === currentIdx) showCanvasLoading(`Processing ${item.name}…`);
   try {
     item.canvas = await fileToCanvas(item.file);
+    if (idx === currentIdx) showCanvasLoading(`Running OCR on ${item.name}…`);
     item.boxes = await detectBoxes(item.canvas, idx);
     renderQueue();
     // Load editor if this is the currently displayed form
@@ -350,7 +378,7 @@ function findDLField(words, state) {
     const h = candidates[0];
     const rh = h.y1 - h.y0;
     // Box covers the input boxes to the right on the same row
-    return { x: 0.55, y: h.y0 - rh * 0.5, w: 0.43, h: rh * 2.2 };
+    return { x: 0.50, y: h.y0 - rh * 0.5, w: 0.48, h: rh * 2.2 };
   }
 
   // MI: anchor to the "Michigan-issued" helper label that appears BELOW the
@@ -416,12 +444,12 @@ function findSSNField(words, state) {
     const x = xxxWords[0], rh = x.y1 - x.y0;
 
     if (state === 'MN') {
-      // MN: XXX-XX- is at x≈0.55, SSN boxes to its right on same row
-      // Cover from left of label text across to right edge
-      return { x: 0.06, y: x.y0 - rh * 0.5, w: 0.92, h: rh * 2.5 };
+      // MN: cover from the XXX-XX- row down through the SSN input boxes
+      // Start right at the XXX row, not above it
+      return { x: 0.06, y: x.y0, w: 0.92, h: rh * 3.0 };
     }
     if (state === 'PA') {
-      // PA: "Last four digits" label on left, XXX-XX- and digits on right
+      // PA: cover from the "Last four digits" label through the written digits
       const labelWords = words.filter(w =>
         (w.text === 'last' || w.text === 'four' || w.text === 'digits') &&
         w.conf > 30 && Math.abs(w.y0 - x.y0) < 0.03
@@ -429,7 +457,7 @@ function findSSNField(words, state) {
       const leftX = labelWords.length
         ? Math.min(...labelWords.map(w => w.x0)) - 0.01
         : 0.24;
-      return { x: leftX, y: x.y0 - rh * 0.4, w: 0.73, h: rh * 2.2 };
+      return { x: leftX, y: x.y0 - rh * 0.4, w: 0.73, h: rh * 4.0 };
     }
     // MI: XXX-XX- anchor, start at the row itself and cover down through digits
     return { x: x.x0 - 0.01, y: x.y0, w: 0.99 - x.x0, h: rh * 2.8 };
@@ -443,8 +471,8 @@ function findSSNField(words, state) {
   if (!social.length) return null;
   social.sort((a, b) => a.y0 - b.y0);
   const s = social[0], rh = s.y1 - s.y0;
-  if (state === 'PA') return { x: 0.24, y: s.y0 - rh * 0.3, w: 0.73, h: rh * 2.2 };
-  if (state === 'MN') return { x: 0.06, y: s.y0 - rh * 0.3, w: 0.92, h: rh * 2.5 };
+  if (state === 'PA') return { x: 0.24, y: s.y0, w: 0.73, h: rh * 4.0 };
+  if (state === 'MN') return { x: 0.06, y: s.y0, w: 0.92, h: rh * 3.0 };
   return { x: s.x0 - 0.01, y: s.y0 - rh * 0.3, w: 0.99 - s.x0, h: rh * 2.2 };
 }
 
@@ -515,7 +543,6 @@ function deleteItem(idx) {
   queue.splice(idx, 1);
 
   if (queue.length === 0) {
-    // No forms left — go back to upload
     currentIdx = -1;
     $('qcCard').classList.add('hidden');
     $('uploadCard').classList.remove('hidden');
@@ -544,8 +571,12 @@ function goTo(idx) {
   selectedBox = -1; dragMode = null;
   renderQueue();
   const item = queue[idx];
-  if (item.canvas) loadEditor(idx);
-  if (item.confirmed) checkboxes.forEach(c => c.checked = true);
+  if (item.canvas && item.boxes) {
+    loadEditor(idx);
+    if (item.confirmed) checkboxes.forEach(c => c.checked = true);
+  } else {
+    showCanvasLoading(`Processing ${item.name}…`);
+  }
   updateConfirmBtn();
 }
 
@@ -701,9 +732,11 @@ function confirmCurrent() {
 
 async function downloadAll() {
   $('downloadAllBtn').disabled=true;
-  $('downloadAllBtn').textContent='Generating PDFs...';
+  $('downloadAllBtn').textContent='Generating zip...';
   try {
     const {PDFDocument} = PDFLib;
+    const zip = new JSZip();
+
     for (let i=0; i<queue.length; i++) {
       const item=queue[i];
       if (!item.confirmed || !item.redactedDataUrl) continue;
@@ -713,25 +746,31 @@ async function downloadAll() {
       const img=await pdfDoc.embedJpg(jpegBytes);
       const page=pdfDoc.addPage([612,792]);
       page.drawImage(img,{x:0,y:0,width:612,height:792});
-      const blob=new Blob([await pdfDoc.save()],{type:'application/pdf'});
-      const a=document.createElement('a');
-      a.href=URL.createObjectURL(blob);
-      a.download=`redacted_${item.name.replace(/\.[^.]+$/,'')}.pdf`;
-      a.click();
-      await new Promise(r=>setTimeout(r,400));
+      const pdfBytes=await pdfDoc.save();
+      const baseName=item.name.replace(/\.[^.]+$/,'');
+      zip.file(`redacted_${baseName}.pdf`, pdfBytes);
     }
-  } catch(err) { console.error(err); alert('Error generating PDFs. Please try again.'); }
+
+    const zipBlob=await zip.generateAsync({type:'blob'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(zipBlob);
+    a.download='redacted_vr_forms.zip';
+    a.click();
+  } catch(err) { console.error(err); alert('Error generating zip. Please try again.'); }
   $('downloadAllBtn').disabled=false;
   $('downloadAllBtn').textContent='Download all redacted PDFs';
 }
 
 function startOver() {
   queue=[]; currentIdx=-1; selectedBox=-1; dragMode=null;
+  selectedState=null;
   checkboxes.forEach(c=>c.checked=false);
   $('fileInput').value=''; $('addMoreInput').value='';
   $('uploadStatus').innerHTML='';
   $('qcCard').classList.add('hidden');
-  $('uploadCard').classList.remove('hidden');
+  $('uploadCard').classList.add('hidden');
+  $('stateCard').classList.remove('hidden');
+  document.querySelectorAll('.state-btn').forEach(b => b.classList.remove('selected'));
   window.scrollTo({top:0,behavior:'smooth'});
 }
 

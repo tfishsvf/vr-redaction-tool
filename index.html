@@ -169,8 +169,8 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
 // MN: tuned against MN SOS 2024 voter registration application
 const STATE_FALLBACKS = {
   MI: {
-    dl:  { x: 0.320, y: 0.215, w: 0.665, h: 0.048 },
-    ssn: { x: 0.320, y: 0.300, w: 0.665, h: 0.050 }
+    dl:  { x: 0.280, y: 0.246, w: 0.710, h: 0.054 },
+    ssn: { x: 0.280, y: 0.316, w: 0.710, h: 0.052 }
   },
   PA: {
     dl:  { x: 0.580, y: 0.448, w: 0.390, h: 0.038 },
@@ -266,10 +266,10 @@ async function detectBoxes(canvas, idx) {
   try {
     setStatus(`<div class="spinner"></div> Running OCR on form ${idx + 1}…`, 'processing');
     const worker = await Tesseract.createWorker('eng', 1, {
-      workerPath: 'tesseract/worker.min.js',
-      langPath: 'tesseract',
-      corePath: 'tesseract/tesseract-core-simd-lstm.wasm',
-      cacheMethod: 'none',
+      workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.0.4/dist/worker.min.js',
+      langPath: 'https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng/4.0.0',
+      corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.0.0',
+      cacheMethod: 'refresh',
     });
     const { data } = await worker.recognize(canvas);
     await worker.terminate();
@@ -285,6 +285,10 @@ async function detectBoxes(canvas, idx) {
     const dlFrac  = findDLField(words, state);
     const ssnFrac = findSSNField(words, state);
 
+    console.log(`[OCR] state=${state} dlFound=${!!dlFrac} ssnFound=${!!ssnFrac}`);
+    if (dlFrac) console.log(`[OCR] DL: y=${dlFrac.y.toFixed(3)} h=${dlFrac.h.toFixed(3)}`);
+    if (ssnFrac) console.log(`[OCR] SSN: y=${ssnFrac.y.toFixed(3)} h=${ssnFrac.h.toFixed(3)}`);
+
     if (dlFrac && ssnFrac) {
       queue[idx].usedOCR = true;
       return [
@@ -297,6 +301,7 @@ async function detectBoxes(canvas, idx) {
   }
 
   queue[idx].usedOCR = false;
+  console.log(`[FALLBACK] state=${queue[idx].state} using hardcoded coords`);
   return [
     { x: fb.dl.x*W,  y: fb.dl.y*H,  w: fb.dl.w*W,  h: fb.dl.h*H  },
     { x: fb.ssn.x*W, y: fb.ssn.y*H, w: fb.ssn.w*W, h: fb.ssn.h*H }

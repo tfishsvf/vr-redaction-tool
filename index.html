@@ -286,8 +286,8 @@ async function detectBoxes(canvas, idx) {
     const ssnFrac = findSSNField(words, state);
 
     console.log(`[OCR] state=${state} dlFound=${!!dlFrac} ssnFound=${!!ssnFrac}`);
-    if (dlFrac) console.log(`[OCR] DL: y=${dlFrac.y.toFixed(3)} h=${dlFrac.h.toFixed(3)}`);
-    if (ssnFrac) console.log(`[OCR] SSN: y=${ssnFrac.y.toFixed(3)} h=${ssnFrac.h.toFixed(3)}`);
+    if (dlFrac) console.log(`[OCR] DL: x=${dlFrac.x.toFixed(3)} y=${dlFrac.y.toFixed(3)} w=${dlFrac.w.toFixed(3)} h=${dlFrac.h.toFixed(3)}`);
+    if (ssnFrac) console.log(`[OCR] SSN: x=${ssnFrac.x.toFixed(3)} y=${ssnFrac.y.toFixed(3)} w=${ssnFrac.w.toFixed(3)} h=${ssnFrac.h.toFixed(3)}`);
 
     if (dlFrac && ssnFrac) {
       queue[idx].usedOCR = true;
@@ -355,8 +355,8 @@ function findDLField(words, state) {
     helperWords.sort((a, b) => a.y0 - b.y0);
     const hw = helperWords[0];
     const rh = hw.y1 - hw.y0;
-    // Cover from 3x row heights above the helper label down through it
-    return { x: hw.x0 - 0.01, y: hw.y0 - rh * 3.2, w: 0.99 - hw.x0, h: rh * 4.5 };
+    // Always start from x=0.27 to cover full right column regardless of anchor x
+    return { x: 0.27, y: hw.y0 - rh * 3.2, w: 0.72, h: rh * 4.5 };
   }
   // Fallback: anchor to "driver" header and push down further
   const candidates = words.filter(w =>
@@ -367,7 +367,7 @@ function findDLField(words, state) {
   candidates.sort((a, b) => a.y0 - b.y0);
   const h = candidates[0];
   const rh = h.y1 - h.y0;
-  return { x: h.x0 - 0.01, y: h.y1 + rh * 2.5, w: 0.99 - h.x0, h: rh * 4.0 };
+  return { x: 0.27, y: h.y1 + rh * 2.5, w: 0.72, h: rh * 4.0 };
 }
 
 function findSSNField(words, state) {
@@ -381,8 +381,7 @@ function findSSNField(words, state) {
     if (ssnLabel.length) {
       ssnLabel.sort((a, b) => a.y0 - b.y0);
       const sl = ssnLabel[0], rh = sl.y1 - sl.y0;
-      // SSN digits are ~2-3 row heights below this label
-      return { x: sl.x0 - 0.01, y: sl.y1 + rh * 1.5, w: 0.99 - sl.x0, h: rh * 4.0 };
+      return { x: 0.27, y: sl.y1 + rh * 1.5, w: 0.72, h: rh * 4.0 };
     }
     // Fallback: XXX on MI is on the left side of the form (x < 0.45)
     const miXxx = words.filter(w =>
@@ -392,7 +391,7 @@ function findSSNField(words, state) {
     if (miXxx.length) {
       miXxx.sort((a, b) => a.y0 - b.y0);
       const x = miXxx[0], rh = x.y1 - x.y0;
-      return { x: x.x0 - 0.01, y: x.y0 - rh * 0.2, w: 0.99 - x.x0, h: rh * 3.0 };
+      return { x: 0.27, y: x.y0 - rh * 0.2, w: 0.72, h: rh * 3.0 };
     }
     return null;
   }

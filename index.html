@@ -173,12 +173,12 @@ const STATE_FALLBACKS = {
     ssn: { x: 0.280, y: 0.316, w: 0.710, h: 0.052 }
   },
   PA: {
-    dl:  { x: 0.580, y: 0.448, w: 0.390, h: 0.038 },
-    ssn: { x: 0.580, y: 0.486, w: 0.390, h: 0.038 }
+    dl:  { x: 0.240, y: 0.448, w: 0.730, h: 0.053 },
+    ssn: { x: 0.240, y: 0.487, w: 0.730, h: 0.038 }
   },
   MN: {
-    dl:  { x: 0.50, y: 0.448, w: 0.48, h: 0.038 },
-    ssn: { x: 0.06, y: 0.566, w: 0.92, h: 0.045 }
+    dl:  { x: 0.50, y: 0.506, w: 0.48, h: 0.028 },
+    ssn: { x: 0.06, y: 0.559, w: 0.92, h: 0.056 }
   }
 };
 
@@ -347,18 +347,25 @@ async function detectBoxes(canvas, idx) {
 
 function findDLField(words, state) {
   if (state === 'PA') {
-    // PA: "PennDOT driver's license or ID card number" label + input on same row,
-    // written number on line just below. Anchor to "PennDOT" word.
-    const candidates = words.filter(w =>
-      w.text === 'penndot' && w.conf > 30 && w.y0 > 0.15 && w.y0 < 0.70
+    // PA: Find the "Identification" section label on the left — this is the
+    // most reliable anchor since it's large bold text with high confidence.
+    // The DL label row is just above it, DL number is on same row as label.
+    const ident = words.filter(w =>
+      w.text === 'identification' && w.conf > 40
     );
-    if (!candidates.length) {
-      const ident = words.filter(w => w.text === 'identification' && w.conf > 30);
-      if (!ident.length) return null;
+    if (ident.length) {
       ident.sort((a, b) => a.y0 - b.y0);
       const id = ident[0];
-      return { x: 0.24, y: id.y0 + 0.02, w: 0.73, h: 0.038 };
+      const rh = id.y1 - id.y0;
+      // DL label row is ~1 row above "Identification", number is on same row
+      // Cover from the DL label row down through the number
+      return { x: 0.24, y: id.y0 - rh * 1.5, w: 0.73, h: rh * 2.5 };
     }
+    // Fallback: find PennDOT in the right column (x > 0.20)
+    const candidates = words.filter(w =>
+      w.text === 'penndot' && w.conf > 30 && w.x0 > 0.20 && w.y0 > 0.15 && w.y0 < 0.70
+    );
+    if (!candidates.length) return null;
     candidates.sort((a, b) => a.y0 - b.y0);
     const h = candidates[0];
     const rh = h.y1 - h.y0;
@@ -378,7 +385,7 @@ function findDLField(words, state) {
     const h = candidates[0];
     const rh = h.y1 - h.y0;
     // Box covers the input boxes to the right on the same row
-    return { x: 0.50, y: h.y0 - rh * 0.5, w: 0.48, h: rh * 2.2 };
+    return { x: 0.50, y: h.y0 - rh * 0.5, w: 0.48, h: rh * 2.5 };
   }
 
   // MI: anchor to the "Michigan-issued" helper label that appears BELOW the
@@ -444,20 +451,21 @@ function findSSNField(words, state) {
     const x = xxxWords[0], rh = x.y1 - x.y0;
 
     if (state === 'MN') {
-      // MN: cover from the XXX-XX- row down through the SSN input boxes
-      // Start right at the XXX row, not above it
-      return { x: 0.06, y: x.y0, w: 0.92, h: rh * 3.0 };
+      // MN: cover from the "The last four digits" label row through XXX and digit boxes
+      // Anchor to the label row which is reliably above the XXX mask
+      const labelRow = words.filter(w =>
+        (w.text === 'last' || w.text === 'four' || w.text === 'digits') &&
+        w.conf > 30 && w.y0 > 0.40 && w.y0 < 0.70 && Math.abs(w.y0 - x.y0) < 0.04
+      );
+      const topY = labelRow.length
+        ? Math.min(...labelRow.map(w => w.y0))
+        : x.y0 - rh * 0.5;
+      return { x: 0.06, y: topY, w: 0.92, h: rh * 3.5 };
     }
     if (state === 'PA') {
-      // PA: cover from the "Last four digits" label through the written digits
-      const labelWords = words.filter(w =>
-        (w.text === 'last' || w.text === 'four' || w.text === 'digits') &&
-        w.conf > 30 && Math.abs(w.y0 - x.y0) < 0.03
-      );
-      const leftX = labelWords.length
-        ? Math.min(...labelWords.map(w => w.x0)) - 0.01
-        : 0.24;
-      return { x: leftX, y: x.y0 - rh * 0.4, w: 0.73, h: rh * 4.0 };
+      // PA: SSN digits often appear ABOVE the "Last four digits" label text
+      // in distorted scans. Anchor to XXX position with generous upward padding.
+      return { x: 0.24, y: x.y0 - rh * 1.0, w: 0.73, h: rh * 4.0 };
     }
     // MI: XXX-XX- anchor, start at the row itself and cover down through digits
     return { x: x.x0 - 0.01, y: x.y0, w: 0.99 - x.x0, h: rh * 2.8 };
@@ -471,8 +479,17 @@ function findSSNField(words, state) {
   if (!social.length) return null;
   social.sort((a, b) => a.y0 - b.y0);
   const s = social[0], rh = s.y1 - s.y0;
-  if (state === 'PA') return { x: 0.24, y: s.y0, w: 0.73, h: rh * 4.0 };
-  if (state === 'MN') return { x: 0.06, y: s.y0, w: 0.92, h: rh * 3.0 };
+  if (state === 'PA') {
+    // Try identification label as SSN anchor when XXX not found
+    const ident = words.filter(w => w.text === 'identification' && w.conf > 40);
+    if (ident.length) {
+      ident.sort((a, b) => a.y0 - b.y0);
+      const id = ident[0], rh = id.y1 - id.y0;
+      return { x: 0.24, y: id.y0 + rh * 0.2, w: 0.73, h: rh * 1.8 };
+    }
+    return { x: 0.24, y: s.y0, w: 0.73, h: rh * 4.0 };
+  }
+  if (state === 'MN') return { x: 0.06, y: s.y0 - rh * 0.3, w: 0.92, h: rh * 3.5 };
   return { x: s.x0 - 0.01, y: s.y0 - rh * 0.3, w: 0.99 - s.x0, h: rh * 2.2 };
 }
 

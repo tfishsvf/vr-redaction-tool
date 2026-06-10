@@ -3,51 +3,63 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Michigan VR Form Redaction</title>
+<title>VR Form Redaction</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; color: #1a1a1a; min-height: 100vh; padding: 2rem 1rem; }
-.container { max-width: 860px; margin: 0 auto; }
+.container { max-width: 920px; margin: 0 auto; }
 header { margin-bottom: 2rem; }
 header h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
 header p { font-size: 14px; color: #666; }
 .card { background: #fff; border: 1px solid #e5e5e3; border-radius: 10px; padding: 1.5rem; margin-bottom: 1.25rem; }
 .step-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #999; margin-bottom: 0.75rem; }
+
+/* State selector */
+.state-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.state-btn { padding: 8px 20px; border: 1.5px solid #ccc; border-radius: 7px; background: #fff; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.12s; }
+.state-btn:hover { border-color: #999; background: #f9f9f7; }
+.state-btn.selected { border-color: #1a1a1a; background: #1a1a1a; color: #fff; }
+
+/* Drop zone */
 .drop-zone { border: 1.5px dashed #ccc; border-radius: 8px; padding: 2.5rem 1.5rem; text-align: center; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
 .drop-zone:hover, .drop-zone.dragover { background: #f9f9f7; border-color: #999; }
+.drop-zone.disabled { opacity: 0.45; pointer-events: none; }
 .drop-zone input { display: none; }
 .drop-zone .icon { font-size: 28px; margin-bottom: 0.75rem; }
 .drop-zone h3 { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
 .drop-zone p { font-size: 13px; color: #888; margin-bottom: 1rem; }
 .browse-btn { display: inline-block; font-size: 13px; padding: 6px 16px; border: 1px solid #ccc; border-radius: 6px; cursor: pointer; background: #fff; }
 .browse-btn:hover { background: #f5f5f3; }
+
+/* Queue */
+.queue-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.queue-header h3 { font-size: 14px; font-weight: 600; }
+.queue-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1rem; }
+.queue-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid #e5e5e3; border-radius: 7px; font-size: 13px; cursor: pointer; transition: background 0.1s; }
+.queue-item:hover { background: #f9f9f7; }
+.queue-item.active { border-color: #2563eb; background: #eff6ff; }
+.queue-item.done { border-color: #bbf7d0; background: #f0fdf4; }
+.queue-item.done .qi-status { color: #15803d; }
+.queue-item .qi-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.queue-item .qi-status { font-size: 12px; color: #999; flex-shrink: 0; }
+.queue-item .qi-num { font-size: 11px; font-weight: 600; color: #999; min-width: 20px; }
+
+/* Status */
 .status { font-size: 14px; padding: 10px 14px; border-radius: 6px; margin-top: 1rem; display: flex; align-items: flex-start; gap: 8px; }
 .status.processing { background: #eff6ff; color: #1d4ed8; }
 .status.error { background: #fef2f2; color: #b91c1c; }
 .spinner { width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.progress-bar-wrap { background: #dbeafe; border-radius: 4px; height: 4px; margin-top: 8px; overflow: hidden; }
-.progress-bar { height: 100%; background: #1d4ed8; border-radius: 4px; transition: width 0.3s; width: 0%; }
 
-/* Editor canvas area */
-.editor-wrap { position: relative; display: inline-block; width: 100%; }
+/* Editor */
+.editor-wrap { position: relative; width: 100%; }
 #editorCanvas { display: block; width: 100%; border: 1px solid #e5e5e3; border-radius: 6px; cursor: default; touch-action: none; }
-
-.hint { font-size: 12px; color: #888; margin-bottom: 8px; }
-
-.legend { display: flex; gap: 1rem; margin-bottom: 10px; flex-wrap: wrap; }
+.legend { display: flex; gap: 1rem; margin-bottom: 8px; flex-wrap: wrap; }
 .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #555; }
 .legend-swatch { width: 14px; height: 14px; border-radius: 2px; }
+.hint { font-size: 12px; color: #888; margin-bottom: 10px; }
 
-.btn { font-size: 14px; padding: 10px 20px; border-radius: 7px; border: none; cursor: pointer; font-weight: 500; transition: opacity 0.15s, transform 0.1s; }
-.btn:active { transform: scale(0.98); }
-.btn:disabled { opacity: 0.35; cursor: not-allowed; }
-.btn-primary { background: #1a1a1a; color: #fff; }
-.btn-primary:hover:not(:disabled) { background: #333; }
-.btn-secondary { background: #fff; color: #1a1a1a; border: 1px solid #ccc; }
-.btn-secondary:hover { background: #f5f5f3; }
-.btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 1.25rem; }
-
+/* QC */
 .qc-prompt { font-size: 15px; font-weight: 500; margin-bottom: 0.25rem; }
 .qc-sub { font-size: 13px; color: #666; margin-bottom: 1rem; }
 .qc-checklist { list-style: none; margin-bottom: 0; }
@@ -55,57 +67,90 @@ header p { font-size: 14px; color: #666; }
 .qc-checklist li:last-child { border-bottom: none; }
 .qc-checklist li input[type=checkbox] { width: 17px; height: 17px; cursor: pointer; flex-shrink: 0; }
 
+/* Nav */
+.nav-bar { display: flex; align-items: center; justify-content: space-between; margin-top: 1.25rem; flex-wrap: wrap; gap: 10px; }
+.nav-left { display: flex; gap: 10px; }
+.nav-right { display: flex; gap: 10px; }
+
+/* Buttons */
+.btn { font-size: 14px; padding: 10px 20px; border-radius: 7px; border: none; cursor: pointer; font-weight: 500; transition: opacity 0.15s, transform 0.1s; white-space: nowrap; }
+.btn:active { transform: scale(0.98); }
+.btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn-primary { background: #1a1a1a; color: #fff; }
+.btn-primary:hover:not(:disabled) { background: #333; }
+.btn-secondary { background: #fff; color: #1a1a1a; border: 1px solid #ccc; }
+.btn-secondary:hover:not(:disabled) { background: #f5f5f3; }
+.btn-success { background: #15803d; color: #fff; }
+.btn-success:hover:not(:disabled) { background: #166534; }
+
+.progress-summary { font-size: 13px; color: #666; }
 .fallback-note { font-size: 12px; color: #92400e; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 8px 12px; margin-bottom: 1rem; }
 .hidden { display: none !important; }
+.dl-all-wrap { text-align: center; margin-top: 0.5rem; }
 </style>
 </head>
 <body>
 <div class="container">
 
 <header>
-  <h1>Michigan VR Form Redaction</h1>
-  <p>Upload a completed form. Adjust the redaction boxes if needed, confirm, then download the redacted PDF.</p>
+  <h1>Voter Registration Form Redaction</h1>
+  <p>Select a state, upload forms, confirm redaction boxes, then download redacted PDFs.</p>
 </header>
 
-<!-- Step 1 -->
+<!-- Step 1: State selection -->
+<div class="card" id="stateCard">
+  <div class="step-label">Step 1 - Select state</div>
+  <div class="state-btns">
+    <button class="state-btn" data-state="MI">Michigan</button>
+    <button class="state-btn" data-state="PA">Pennsylvania</button>
+    <button class="state-btn" data-state="MN">Minnesota</button>
+  </div>
+</div>
+
+<!-- Step 2: Upload -->
 <div class="card" id="uploadCard">
-  <div class="step-label">Step 1 - Upload form</div>
-  <div class="drop-zone" id="dropZone">
+  <div class="step-label">Step 2 - Upload forms</div>
+  <div class="drop-zone disabled" id="dropZone">
     <div class="icon">📄</div>
-    <h3>Drop your form here</h3>
-    <p>JPG, PNG, or PDF - CamScanner exports work fine</p>
-    <label class="browse-btn">Browse files<input type="file" id="fileInput" accept="image/*,application/pdf"></label>
+    <h3>Drop forms here</h3>
+    <p>JPG, PNG, or PDF - select multiple files for bulk upload</p>
+    <label class="browse-btn">Browse files<input type="file" id="fileInput" accept="image/*,application/pdf" multiple></label>
   </div>
   <div id="uploadStatus"></div>
 </div>
 
-<!-- Step 2: interactive editor + QC -->
+<!-- Step 3: QC -->
 <div class="card hidden" id="qcCard">
-  <div class="step-label">Step 2 - Adjust &amp; confirm redaction</div>
-  <p class="qc-prompt">Drag boxes to move, drag edges/corners to resize.</p>
-  <p class="qc-sub">Black boxes cover the sensitive fields. Adjust them if the auto-placement looks off, then tick the boxes below.</p>
-
-  <div id="fallbackNote" class="fallback-note hidden">Boxes are placed based on the standard ED-121 form layout. If your scan is cropped or rotated, drag the boxes to adjust before confirming.</div>
-
+  <div class="step-label">Step 3 - Review &amp; confirm each form</div>
+  <div class="queue-header">
+    <h3>Forms <span id="queueSummary" class="progress-summary"></span></h3>
+    <button class="btn btn-secondary" id="addMoreBtn" style="font-size:12px;padding:6px 12px;">+ Add more</button>
+    <input type="file" id="addMoreInput" accept="image/*,application/pdf" multiple style="display:none">
+  </div>
+  <div class="queue-list" id="queueList"></div>
+  <div id="fallbackNote" class="fallback-note">Boxes are placed using OCR when possible, or standard form coordinates as a fallback. Drag to adjust if placement looks off.</div>
   <div class="legend">
-    <div class="legend-item"><div class="legend-swatch" style="background:#2563eb;border:2px solid #2563eb;"></div> Driver's License / State ID</div>
-    <div class="legend-item"><div class="legend-swatch" style="background:#16a34a;border:2px solid #16a34a;"></div> Social Security number</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#2563eb;"></div> Driver's License / State ID</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#16a34a;"></div> Social Security number</div>
   </div>
-
-  <p class="hint">Click a box to select it (coloured outline). Drag to move. Drag any edge or corner handle to resize.</p>
-
-  <div class="editor-wrap">
-    <canvas id="editorCanvas"></canvas>
-  </div>
-
+  <p class="hint">Click a box to select it. Drag to move. Drag edges or corners to resize.</p>
+  <div class="editor-wrap"><canvas id="editorCanvas"></canvas></div>
   <ul class="qc-checklist" style="margin-top:1.25rem;">
     <li><input type="checkbox" id="chk1"><label for="chk1">Driver's License / State ID field is fully covered</label></li>
     <li><input type="checkbox" id="chk2"><label for="chk2">Social Security number field is fully covered</label></li>
   </ul>
-
-  <div class="btn-row">
-    <button class="btn btn-primary" id="downloadBtn" disabled>Download redacted PDF</button>
-    <button class="btn btn-secondary" id="startOverBtn">Start over</button>
+  <div class="nav-bar">
+    <div class="nav-left">
+      <button class="btn btn-secondary" id="prevBtn" disabled>Previous</button>
+      <button class="btn btn-secondary" id="nextBtn" disabled>Next</button>
+    </div>
+    <div class="nav-right">
+      <button class="btn btn-primary" id="confirmBtn" disabled>Confirm this form</button>
+      <button class="btn btn-success hidden" id="downloadAllBtn">Download all redacted PDFs</button>
+    </div>
+  </div>
+  <div class="dl-all-wrap">
+    <button class="btn btn-secondary" id="startOverBtn" style="font-size:12px;padding:6px 14px;margin-top:0.5rem;">Start over</button>
   </div>
 </div>
 
@@ -113,87 +158,203 @@ header p { font-size: 14px; color: #666; }
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.4/dist/tesseract.min.js"></script>
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-const FALLBACK = {
-  dl:  { x: 0.337, y: 0.228, w: 0.644, h: 0.034 },
-  ssn: { x: 0.337, y: 0.316, w: 0.644, h: 0.038 }
+// Calibrated fallback coordinates per state (fractions of image)
+// MI: tuned against CamScanner simulation of ED-121 Rev 12/23
+// PA: tuned against PA voter registration form (VRPA600 / 2015b)
+// MN: tuned against MN SOS 2024 voter registration application
+const STATE_FALLBACKS = {
+  MI: {
+    dl:  { x: 0.320, y: 0.215, w: 0.665, h: 0.048 },
+    ssn: { x: 0.320, y: 0.300, w: 0.665, h: 0.050 }
+  },
+  PA: {
+    dl:  { x: 0.580, y: 0.448, w: 0.390, h: 0.038 },
+    ssn: { x: 0.580, y: 0.486, w: 0.390, h: 0.038 }
+  },
+  MN: {
+    dl:  { x: 0.315, y: 0.450, w: 0.670, h: 0.038 },
+    ssn: { x: 0.270, y: 0.490, w: 0.715, h: 0.042 }
+  }
 };
 
-// Box colours (outline when selected, label)
+// OCR anchor terms per state
+const STATE_OCR = {
+  MI: { dlTerm: 'driver', ssnTerm: 'xxx' },
+  PA: { dlTerm: 'penndot', ssnTerm: 'xxx' },
+  MN: { dlTerm: 'mnissued', ssnTerm: 'xxx' }
+};
+
 const BOX_COLORS = ['#2563eb', '#16a34a'];
-const BOX_LABELS = ["Driver's License / State ID", "Social Security number"];
+const BOX_LABELS = ["DL / State ID", "SSN"];
 
-let sourceCanvas = null;   // original unredacted image
-let usedFallback = false;
+let selectedState = null;
+let queue = [];
+let currentIdx = -1;
+let selectedBox = -1;
+let dragMode = null, dragHandle = null, dragStart = {}, boxStart = {};
+const HANDLE_SIZE = 10;
 
-// Redaction boxes in image-pixel space: [{x,y,w,h}, ...]
-let boxes = [];
-
-// Editor state
 const edCanvas = document.getElementById('editorCanvas');
 const edCtx = edCanvas.getContext('2d');
-let scale = 1;             // canvas CSS px → image px
-let selectedBox = -1;      // index of selected box
-let dragMode = null;       // null | 'move' | 'resize'
-let dragHandle = null;     // for resize: {ex, ey} edge flags
-let dragStart = {};        // pointer start in image coords
-let boxStart = {};         // box state at drag start
-
-const HANDLE_SIZE = 10;    // hit radius in CSS px for edge handles
-
 const $ = id => document.getElementById(id);
 const checkboxes = [$('chk1'), $('chk2')];
-checkboxes.forEach(c => c.addEventListener('change', updateDownloadBtn));
-function updateDownloadBtn() {
-  $('downloadBtn').disabled = !checkboxes.every(x => x.checked);
-}
+checkboxes.forEach(c => c.addEventListener('change', updateConfirmBtn));
 
-// ── File input ──────────────────────────────────────────────────────────────
+// State selection
+document.querySelectorAll('.state-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.state-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedState = btn.dataset.state;
+    $('dropZone').classList.remove('disabled');
+  });
+});
+
+// File input
 const dz = $('dropZone');
 dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
 dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
-dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragover'); go(e.dataTransfer.files[0]); });
-$('fileInput').addEventListener('change', e => go(e.target.files[0]));
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragover'); if (selectedState) addFiles(e.dataTransfer.files); });
+$('fileInput').addEventListener('change', e => addFiles(e.target.files));
+$('addMoreBtn').addEventListener('click', () => $('addMoreInput').click());
+$('addMoreInput').addEventListener('change', e => addFiles(e.target.files));
+$('prevBtn').addEventListener('click', () => goTo(currentIdx - 1));
+$('nextBtn').addEventListener('click', () => goTo(currentIdx + 1));
+$('confirmBtn').addEventListener('click', confirmCurrent);
+$('downloadAllBtn').addEventListener('click', downloadAll);
+$('startOverBtn').addEventListener('click', startOver);
 
-$('startOverBtn').addEventListener('click', () => {
-  $('fileInput').value = '';
-  $('uploadStatus').innerHTML = '';
-  $('qcCard').classList.add('hidden');
-  checkboxes.forEach(c => c.checked = false);
-  updateDownloadBtn();
-  sourceCanvas = null; boxes = []; selectedBox = -1;
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-});
-
-function setStatus(html, type) {
-  $('uploadStatus').innerHTML = `<div class="status ${type}">${html}</div>`;
+async function addFiles(fileList) {
+  const files = Array.from(fileList);
+  if (!files.length || !selectedState) return;
+  const startIdx = queue.length;
+  files.forEach(f => queue.push({ file: f, name: f.name, canvas: null, boxes: null, confirmed: false, redactedDataUrl: null, state: selectedState }));
+  $('uploadCard').classList.add('hidden');
+  $('qcCard').classList.remove('hidden');
+  renderQueue();
+  for (let i = startIdx; i < queue.length; i++) await processItem(i);
+  if (currentIdx === -1) goTo(0);
 }
-function statusOCR(msg) {
-  $('uploadStatus').innerHTML = `<div class="status processing"><div class="spinner"></div><div style="flex:1"><div>${msg}</div><div class="progress-bar-wrap"><div class="progress-bar" id="progBar"></div></div></div></div>`;
-}
 
-async function go(file) {
-  if (!file) return;
-  $('qcCard').classList.add('hidden');
-  checkboxes.forEach(c => c.checked = false);
-  updateDownloadBtn();
-  usedFallback = false;
-  setStatus('<div class="spinner"></div> Reading file…', 'processing');
+async function processItem(idx) {
+  const item = queue[idx];
+  setStatus(`<div class="spinner"></div> Processing ${item.name}…`, 'processing');
   try {
-    sourceCanvas = await fileToCanvas(file);
-    await runOCRAndInit(sourceCanvas);
+    item.canvas = await fileToCanvas(item.file);
+    item.boxes = await detectBoxes(item.canvas, idx);
+    renderQueue();
+    if (idx === currentIdx) loadEditor(idx);
   } catch (err) {
-    setStatus('Could not process this file. Please try again or export as JPG from CamScanner.', 'error');
     console.error(err);
+    item.error = true;
+    renderQueue();
   }
+  $('uploadStatus').innerHTML = '';
+}
+
+async function detectBoxes(canvas, idx) {
+  const W = canvas.width, H = canvas.height;
+  const state = queue[idx].state;
+  const fb = STATE_FALLBACKS[state];
+
+  // Try OCR
+  try {
+    setStatus(`<div class="spinner"></div> Running OCR on form ${idx + 1}…`, 'processing');
+    const worker = await Tesseract.createWorker('eng', 1, {
+      workerPath: 'tesseract/worker.min.js',
+      langPath: 'tesseract',
+      corePath: 'tesseract/tesseract-core-simd-lstm.wasm',
+      cacheMethod: 'none',
+    });
+    const { data } = await worker.recognize(canvas);
+    await worker.terminate();
+
+    const words = data.words.map(w => ({
+      text: w.text.toLowerCase().replace(/[^a-z0-9]/g, ''),
+      raw: w.text,
+      x0: w.bbox.x0/W, y0: w.bbox.y0/H,
+      x1: w.bbox.x1/W, y1: w.bbox.y1/H,
+      conf: w.confidence
+    }));
+
+    const dlFrac  = findDLField(words, state);
+    const ssnFrac = findSSNField(words, state);
+
+    if (dlFrac && ssnFrac) {
+      queue[idx].usedOCR = true;
+      return [
+        { x: dlFrac.x*W,  y: dlFrac.y*H,  w: dlFrac.w*W,  h: dlFrac.h*H  },
+        { x: ssnFrac.x*W, y: ssnFrac.y*H, w: ssnFrac.w*W, h: ssnFrac.h*H }
+      ];
+    }
+  } catch (err) {
+    console.warn('OCR failed, using fallback:', err.message);
+  }
+
+  queue[idx].usedOCR = false;
+  return [
+    { x: fb.dl.x*W,  y: fb.dl.y*H,  w: fb.dl.w*W,  h: fb.dl.h*H  },
+    { x: fb.ssn.x*W, y: fb.ssn.y*H, w: fb.ssn.w*W, h: fb.ssn.h*H }
+  ];
+}
+
+function findDLField(words, state) {
+  // Per-state anchor terms
+  const terms = {
+    MI: ['driver', 'drivers'],
+    PA: ['penndot', 'driver', 'penndriver'],
+    MN: ['mn', 'mnissued', 'driver']
+  }[state] || ['driver'];
+
+  const candidates = words.filter(w =>
+    terms.some(t => w.text.includes(t)) &&
+    w.conf > 30 && w.x0 > 0.20 && w.y0 > 0.15 && w.y0 < 0.65
+  );
+  if (!candidates.length) return null;
+  candidates.sort((a, b) => a.y0 - b.y0);
+
+  // For PA: DL input is to the right on the same row as the label
+  // For MI/MN: DL input is below the section header
+  if (state === 'PA') {
+    const h = candidates[0];
+    const rh = h.y1 - h.y0;
+    return { x: 0.55, y: h.y0 - rh*0.2, w: 0.42, h: rh*1.5 };
+  }
+  const h = candidates[0];
+  const rh = h.y1 - h.y0;
+  return { x: h.x0 - 0.01, y: h.y1 + rh*0.3, w: 0.99 - h.x0, h: rh*2.0 };
+}
+
+function findSSNField(words, state) {
+  const xxxWords = words.filter(w =>
+    (w.text === 'xxx' || w.raw.toUpperCase().startsWith('XXX')) &&
+    w.conf > 20 && w.x0 > 0.15 && w.y0 > 0.20 && w.y0 < 0.70
+  );
+  if (xxxWords.length) {
+    xxxWords.sort((a, b) => a.y0 - b.y0);
+    const x = xxxWords[0], rh = x.y1 - x.y0;
+    if (state === 'PA') {
+      return { x: 0.55, y: x.y0 - rh*0.3, w: 0.42, h: rh*1.8 };
+    }
+    return { x: x.x0 - 0.01, y: x.y0 - rh*0.5, w: 0.99 - x.x0, h: rh*2.2 };
+  }
+  const social = words.filter(w =>
+    (w.text === 'social' || w.text === 'security') &&
+    w.x0 > 0.15 && w.y0 > 0.20 && w.y0 < 0.70 && w.conf > 30
+  );
+  if (!social.length) return null;
+  social.sort((a, b) => a.y0 - b.y0);
+  const s = social[0], rh = s.y1 - s.y0;
+  return { x: s.x0 - 0.01, y: s.y0 - rh*0.3, w: 0.99 - s.x0, h: rh*2.2 };
 }
 
 async function fileToCanvas(file) {
   if (file.type === 'application/pdf') {
-    setStatus('<div class="spinner"></div> Converting PDF…', 'processing');
     const buf = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
     const page = await pdf.getPage(1);
@@ -217,241 +378,236 @@ async function fileToCanvas(file) {
   }
 }
 
-async function runOCRAndInit(canvas) {
-  setStatus('<div class="spinner"></div> Placing redaction boxes…', 'processing');
-  // Small delay so the status renders before the canvas work starts
-  await new Promise(r => setTimeout(r, 50));
-
-  const W = canvas.width, H = canvas.height;
-
-  // Place boxes using hardcoded coordinates from the official ED-121 form (Rev 12/23)
-  // Staff can drag/resize to adjust if the scan is cropped differently
-  boxes = [
-    {
-      x: FALLBACK.dl.x  * W, y: FALLBACK.dl.y  * H,
-      w: FALLBACK.dl.w  * W, h: FALLBACK.dl.h  * H
-    },
-    {
-      x: FALLBACK.ssn.x * W, y: FALLBACK.ssn.y * H,
-      w: FALLBACK.ssn.w * W, h: FALLBACK.ssn.h * H
-    }
-  ];
-
-  $('fallbackNote').classList.remove('hidden');
-  $('uploadStatus').innerHTML = '';
-  $('qcCard').classList.remove('hidden');
-  initEditor(canvas);
-  $('qcCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+// Queue UI
+function renderQueue() {
+  const list = $('queueList');
+  list.innerHTML = '';
+  queue.forEach((item, i) => {
+    const div = document.createElement('div');
+    div.className = 'queue-item' + (i === currentIdx ? ' active' : '') + (item.confirmed ? ' done' : '');
+    div.innerHTML = `
+      <span class="qi-num">${i+1}</span>
+      <span class="qi-name">${item.name}</span>
+      <span class="qi-status" style="margin-right:6px;font-size:11px;color:#aaa;">${item.state}</span>
+      <span class="qi-status">${item.confirmed ? 'confirmed' : item.error ? 'error' : item.canvas ? 'ready' : 'loading...'}</span>
+    `;
+    div.addEventListener('click', () => goTo(i));
+    list.appendChild(div);
+  });
+  const done = queue.filter(x => x.confirmed).length;
+  $('queueSummary').textContent = `(${done}/${queue.length} confirmed)`;
+  const allDone = queue.length > 0 && queue.every(x => x.confirmed);
+  $('downloadAllBtn').classList.toggle('hidden', !allDone);
+  updateNavBtns();
 }
 
+function updateNavBtns() {
+  $('prevBtn').disabled = currentIdx <= 0;
+  $('nextBtn').disabled = currentIdx >= queue.length - 1;
+}
 
-// ── Editor ──────────────────────────────────────────────────────────────────
+// Editor
+function goTo(idx) {
+  if (idx < 0 || idx >= queue.length) return;
+  currentIdx = idx;
+  checkboxes.forEach(c => c.checked = false);
+  selectedBox = -1; dragMode = null;
+  renderQueue();
+  const item = queue[idx];
+  if (item.canvas) loadEditor(idx);
+  if (item.confirmed) checkboxes.forEach(c => c.checked = true);
+  updateConfirmBtn();
+}
 
-function initEditor(srcCanvas) {
-  // Size the canvas element to match container width, keep aspect ratio
-  const containerW = edCanvas.parentElement.clientWidth;
-  scale = srcCanvas.width / containerW;
-  edCanvas.width  = srcCanvas.width;
-  edCanvas.height = srcCanvas.height;
+function loadEditor(idx) {
+  const item = queue[idx];
+  if (!item.canvas) return;
+  const containerW = edCanvas.parentElement.clientWidth || 800;
+  edCanvas.width  = item.canvas.width;
+  edCanvas.height = item.canvas.height;
   edCanvas.style.width  = containerW + 'px';
-  edCanvas.style.height = (srcCanvas.height / scale) + 'px';
+  edCanvas.style.height = (item.canvas.height / (item.canvas.width / containerW)) + 'px';
   drawEditor();
 }
 
+function getScale() {
+  const item = queue[currentIdx];
+  if (!item || !item.canvas) return 1;
+  return item.canvas.width / edCanvas.getBoundingClientRect().width;
+}
+
 function drawEditor() {
-  const c = edCanvas, ctx = edCtx;
-  c.width = c.width; // clear
-  // Draw source image
-  ctx.drawImage(sourceCanvas, 0, 0);
-  // Draw redaction boxes
-  boxes.forEach((b, i) => {
-    ctx.fillStyle = 'rgba(0,0,0,1)';
-    ctx.fillRect(b.x, b.y, b.w, b.h);
+  const item = queue[currentIdx];
+  if (!item || !item.canvas) return;
+  edCanvas.width = edCanvas.width;
+  edCtx.drawImage(item.canvas, 0, 0);
+  item.boxes.forEach((b, i) => {
+    edCtx.fillStyle = '#000';
+    edCtx.fillRect(b.x, b.y, b.w, b.h);
     if (i === selectedBox) {
-      // Coloured selection outline
-      ctx.strokeStyle = BOX_COLORS[i];
-      ctx.lineWidth = Math.max(3, 3 * scale);
-      ctx.strokeRect(b.x, b.y, b.w, b.h);
-      // Draw resize handles at 8 positions (corners + edge midpoints)
-      drawHandles(b, BOX_COLORS[i]);
-      // Label
-      ctx.fillStyle = BOX_COLORS[i];
-      ctx.font = `${Math.max(14, 14 * scale)}px -apple-system, sans-serif`;
-      ctx.fillText(BOX_LABELS[i], b.x, b.y - 8 * scale);
+      const sc = getScale();
+      edCtx.strokeStyle = BOX_COLORS[i];
+      edCtx.lineWidth = Math.max(3, 3*sc);
+      edCtx.strokeRect(b.x, b.y, b.w, b.h);
+      drawHandles(b, BOX_COLORS[i], sc);
+      edCtx.fillStyle = BOX_COLORS[i];
+      edCtx.font = `${Math.max(14, 14*sc)}px -apple-system, sans-serif`;
+      edCtx.fillText(BOX_LABELS[i], b.x, b.y - 8*sc);
     }
   });
 }
 
 function handlePositions(b) {
-  const mx = b.x + b.w / 2, my = b.y + b.h / 2;
+  const mx = b.x+b.w/2, my = b.y+b.h/2;
   return [
-    { x: b.x,      y: b.y,      ex: -1, ey: -1 }, // TL
-    { x: mx,       y: b.y,      ex:  0, ey: -1 }, // T
-    { x: b.x+b.w,  y: b.y,      ex:  1, ey: -1 }, // TR
-    { x: b.x+b.w,  y: my,       ex:  1, ey:  0 }, // R
-    { x: b.x+b.w,  y: b.y+b.h,  ex:  1, ey:  1 }, // BR
-    { x: mx,       y: b.y+b.h,  ex:  0, ey:  1 }, // B
-    { x: b.x,      y: b.y+b.h,  ex: -1, ey:  1 }, // BL
-    { x: b.x,      y: my,       ex: -1, ey:  0 }, // L
+    {x:b.x,     y:b.y,     ex:-1,ey:-1},{x:mx,      y:b.y,     ex:0, ey:-1},
+    {x:b.x+b.w, y:b.y,     ex:1, ey:-1},{x:b.x+b.w, y:my,      ex:1, ey:0 },
+    {x:b.x+b.w, y:b.y+b.h, ex:1, ey:1 },{x:mx,      y:b.y+b.h, ex:0, ey:1 },
+    {x:b.x,     y:b.y+b.h, ex:-1,ey:1 },{x:b.x,     y:my,      ex:-1,ey:0 },
   ];
 }
 
-function drawHandles(b, color) {
-  const r = HANDLE_SIZE * scale;
+function drawHandles(b, color, sc) {
+  const r = HANDLE_SIZE*sc;
   handlePositions(b).forEach(h => {
-    edCtx.fillStyle = '#fff';
-    edCtx.strokeStyle = color;
-    edCtx.lineWidth = 2 * scale;
-    edCtx.beginPath();
-    edCtx.arc(h.x, h.y, r, 0, Math.PI * 2);
-    edCtx.fill();
-    edCtx.stroke();
+    edCtx.fillStyle='#fff'; edCtx.strokeStyle=color; edCtx.lineWidth=2*sc;
+    edCtx.beginPath(); edCtx.arc(h.x, h.y, r, 0, Math.PI*2); edCtx.fill(); edCtx.stroke();
   });
 }
 
 function pointerToImage(e) {
   const rect = edCanvas.getBoundingClientRect();
+  const sc = getScale();
   const cssX = (e.clientX ?? e.touches[0].clientX) - rect.left;
   const cssY = (e.clientY ?? e.touches[0].clientY) - rect.top;
-  return { x: cssX * scale, y: cssY * scale };
+  return { x: cssX*sc, y: cssY*sc };
 }
 
 function hitHandle(b, px, py) {
-  const r = HANDLE_SIZE * scale * 1.5; // a bit generous for touch
+  const r = HANDLE_SIZE*getScale()*1.5;
   for (const h of handlePositions(b)) {
-    const dx = px - h.x, dy = py - h.y;
-    if (dx*dx + dy*dy <= r*r) return { ex: h.ex, ey: h.ey };
+    const dx=px-h.x, dy=py-h.y;
+    if (dx*dx+dy*dy <= r*r) return {ex:h.ex, ey:h.ey};
   }
   return null;
 }
 
 function hitBox(b, px, py) {
-  return px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h;
+  return px>=b.x && px<=b.x+b.w && py>=b.y && py<=b.y+b.h;
 }
 
 function onPointerDown(e) {
   e.preventDefault();
-  const { x, y } = pointerToImage(e);
-
-  // Check handles on selected box first
+  const item = queue[currentIdx];
+  if (!item?.canvas) return;
+  const {x,y} = pointerToImage(e);
   if (selectedBox >= 0) {
-    const h = hitHandle(boxes[selectedBox], x, y);
-    if (h) {
-      dragMode = 'resize';
-      dragHandle = h;
-      dragStart = { x, y };
-      boxStart = { ...boxes[selectedBox] };
-      return;
-    }
+    const h = hitHandle(item.boxes[selectedBox], x, y);
+    if (h) { dragMode='resize'; dragHandle=h; dragStart={x,y}; boxStart={...item.boxes[selectedBox]}; return; }
   }
-
-  // Check if clicking inside any box (top box first = last drawn = highest index)
-  for (let i = boxes.length - 1; i >= 0; i--) {
-    if (hitBox(boxes[i], x, y)) {
-      selectedBox = i;
-      dragMode = 'move';
-      dragStart = { x, y };
-      boxStart = { ...boxes[i] };
-      drawEditor();
-      return;
-    }
+  for (let i=item.boxes.length-1; i>=0; i--) {
+    if (hitBox(item.boxes[i], x, y)) { selectedBox=i; dragMode='move'; dragStart={x,y}; boxStart={...item.boxes[i]}; drawEditor(); return; }
   }
-
-  // Clicked empty area - deselect
-  selectedBox = -1;
-  dragMode = null;
-  drawEditor();
+  selectedBox=-1; dragMode=null; drawEditor();
 }
 
 function onPointerMove(e) {
   e.preventDefault();
   if (!dragMode) return;
-  const { x, y } = pointerToImage(e);
-  const dx = x - dragStart.x, dy = y - dragStart.y;
-  const b = boxes[selectedBox];
-
-  if (dragMode === 'move') {
-    b.x = boxStart.x + dx;
-    b.y = boxStart.y + dy;
-  } else if (dragMode === 'resize') {
-    const { ex, ey } = dragHandle;
-    if (ex === -1) { b.x = boxStart.x + dx; b.w = boxStart.w - dx; }
-    if (ex ===  1) { b.w = boxStart.w + dx; }
-    if (ey === -1) { b.y = boxStart.y + dy; b.h = boxStart.h - dy; }
-    if (ey ===  1) { b.h = boxStart.h + dy; }
-    // Minimum size
-    if (b.w < 10) { b.w = 10; if (ex === -1) b.x = boxStart.x + boxStart.w - 10; }
-    if (b.h < 6)  { b.h = 6;  if (ey === -1) b.y = boxStart.y + boxStart.h - 6; }
+  const item = queue[currentIdx];
+  if (!item) return;
+  const {x,y} = pointerToImage(e);
+  const dx=x-dragStart.x, dy=y-dragStart.y;
+  const b = item.boxes[selectedBox];
+  if (dragMode==='move') { b.x=boxStart.x+dx; b.y=boxStart.y+dy; }
+  else {
+    const {ex,ey}=dragHandle;
+    if (ex===-1){b.x=boxStart.x+dx; b.w=boxStart.w-dx;} if (ex===1){b.w=boxStart.w+dx;}
+    if (ey===-1){b.y=boxStart.y+dy; b.h=boxStart.h-dy;} if (ey===1){b.h=boxStart.h+dy;}
+    if (b.w<10){b.w=10; if(ex===-1)b.x=boxStart.x+boxStart.w-10;}
+    if (b.h<6) {b.h=6;  if(ey===-1)b.y=boxStart.y+boxStart.h-6;}
   }
-
   drawEditor();
 }
 
-function onPointerUp(e) {
-  dragMode = null;
-}
+function onPointerUp() { dragMode=null; }
 
 edCanvas.addEventListener('mousedown',  onPointerDown);
 edCanvas.addEventListener('mousemove',  onPointerMove);
 edCanvas.addEventListener('mouseup',    onPointerUp);
 edCanvas.addEventListener('mouseleave', onPointerUp);
-edCanvas.addEventListener('touchstart', onPointerDown, { passive: false });
-edCanvas.addEventListener('touchmove',  onPointerMove, { passive: false });
+edCanvas.addEventListener('touchstart', onPointerDown, {passive:false});
+edCanvas.addEventListener('touchmove',  onPointerMove, {passive:false});
 edCanvas.addEventListener('touchend',   onPointerUp);
-
-// Update cursor
 edCanvas.addEventListener('mousemove', e => {
   if (dragMode) return;
-  const { x, y } = pointerToImage(e);
-  if (selectedBox >= 0 && hitHandle(boxes[selectedBox], x, y)) {
-    edCanvas.style.cursor = 'crosshair';
-  } else if (boxes.some(b => hitBox(b, x, y))) {
-    edCanvas.style.cursor = 'move';
-  } else {
-    edCanvas.style.cursor = 'default';
-  }
+  const item = queue[currentIdx];
+  if (!item?.canvas) return;
+  const {x,y} = pointerToImage(e);
+  if (selectedBox>=0 && hitHandle(item.boxes[selectedBox], x, y)) edCanvas.style.cursor='crosshair';
+  else if (item.boxes.some(b => hitBox(b,x,y))) edCanvas.style.cursor='move';
+  else edCanvas.style.cursor='default';
 });
 
-// ── Download ────────────────────────────────────────────────────────────────
+function updateConfirmBtn() {
+  $('confirmBtn').disabled = !checkboxes.every(c => c.checked);
+}
 
-$('downloadBtn').addEventListener('click', async () => {
-  $('downloadBtn').disabled = true;
-  $('downloadBtn').textContent = 'Generating PDF…';
+function confirmCurrent() {
+  const item = queue[currentIdx];
+  if (!item) return;
+  item.confirmed = true;
+  const fc = document.createElement('canvas');
+  fc.width=item.canvas.width; fc.height=item.canvas.height;
+  const ctx=fc.getContext('2d');
+  ctx.drawImage(item.canvas, 0, 0);
+  item.boxes.forEach(b => { ctx.fillStyle='#000'; ctx.fillRect(Math.floor(b.x),Math.floor(b.y),Math.ceil(b.w),Math.ceil(b.h)); });
+  item.redactedDataUrl = fc.toDataURL('image/jpeg', 0.92);
+  renderQueue();
+  const next = queue.findIndex((x,i) => i>currentIdx && !x.confirmed);
+  if (next>=0) goTo(next);
+  else { const any=queue.findIndex(x => !x.confirmed); if (any>=0) goTo(any); }
+}
 
+async function downloadAll() {
+  $('downloadAllBtn').disabled=true;
+  $('downloadAllBtn').textContent='Generating PDFs...';
   try {
-    // Render final redacted image (no selection outlines)
-    const finalCanvas = document.createElement('canvas');
-    finalCanvas.width  = sourceCanvas.width;
-    finalCanvas.height = sourceCanvas.height;
-    const fCtx = finalCanvas.getContext('2d');
-    fCtx.drawImage(sourceCanvas, 0, 0);
-    boxes.forEach(b => {
-      fCtx.fillStyle = '#000';
-      fCtx.fillRect(Math.floor(b.x), Math.floor(b.y), Math.ceil(b.w), Math.ceil(b.h));
-    });
+    const {PDFDocument} = PDFLib;
+    for (let i=0; i<queue.length; i++) {
+      const item=queue[i];
+      if (!item.confirmed || !item.redactedDataUrl) continue;
+      const b64=item.redactedDataUrl.split(',')[1];
+      const jpegBytes=Uint8Array.from(atob(b64), c=>c.charCodeAt(0));
+      const pdfDoc=await PDFDocument.create();
+      const img=await pdfDoc.embedJpg(jpegBytes);
+      const page=pdfDoc.addPage([612,792]);
+      page.drawImage(img,{x:0,y:0,width:612,height:792});
+      const blob=new Blob([await pdfDoc.save()],{type:'application/pdf'});
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download=`redacted_${item.name.replace(/\.[^.]+$/,'')}.pdf`;
+      a.click();
+      await new Promise(r=>setTimeout(r,400));
+    }
+  } catch(err) { console.error(err); alert('Error generating PDFs. Please try again.'); }
+  $('downloadAllBtn').disabled=false;
+  $('downloadAllBtn').textContent='Download all redacted PDFs';
+}
 
-    const b64 = finalCanvas.toDataURL('image/jpeg', 0.92).split(',')[1];
-    const jpegBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+function startOver() {
+  queue=[]; currentIdx=-1; selectedBox=-1; dragMode=null;
+  checkboxes.forEach(c=>c.checked=false);
+  $('fileInput').value=''; $('addMoreInput').value='';
+  $('uploadStatus').innerHTML='';
+  $('qcCard').classList.add('hidden');
+  $('uploadCard').classList.remove('hidden');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
 
-    const { PDFDocument } = PDFLib;
-    const pdfDoc = await PDFDocument.create();
-    const img = await pdfDoc.embedJpg(jpegBytes);
-    const page = pdfDoc.addPage([612, 792]);
-    page.drawImage(img, { x: 0, y: 0, width: 612, height: 792 });
-
-    const blob = new Blob([await pdfDoc.save()], { type: 'application/pdf' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'redacted_vr_form.pdf';
-    a.click();
-  } catch (err) {
-    console.error(err);
-    alert('Could not generate PDF. Please try again.');
-  }
-
-  $('downloadBtn').textContent = 'Download redacted PDF';
-  updateDownloadBtn();
-});
+function setStatus(html, type) {
+  $('uploadStatus').innerHTML=`<div class="status ${type}">${html}</div>`;
+}
 </script>
 </body>
 </html>
